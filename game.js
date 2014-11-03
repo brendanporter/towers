@@ -99,6 +99,15 @@ game.delObject = function(obj){
 	
 }
 
+game.getObjectByType = function(type){
+	for (var i = game.objects.length - 1; i >= 0; i--) {
+		if(game.objects[i].type === type){
+			return game.objects[i];
+		}
+	}
+	return false;
+}
+
 game.delObjectByType = function(type){
 
 	game.objects = game.objects.filter(function(e){
@@ -260,8 +269,17 @@ game.mouseupHandler = function(event){
 			game.log('Finished dragging new tower placement');
 			// Place new tower on battlefield
 			// Delete tower dragging context
+			var towerPlacementItem = game.getObjectByType('towerPlacementItem');
 			game.delObjectByType('towerPlacementItem');
 			game.delObjectByType('towerPlacementGrid');
+
+			var towerColor = towerPlacementItem.color;
+			towerColor = towerColor.replace('.25','1');
+			var newTowerItem = {x: event.pageX - 15, y: event.pageY - 15, w: 30, h: 30, color: towerColor, type: 'towerItem', canvas: 'base_canvas', draw: function(){
+				game.ctx.fillStyle = this.color;
+				game.ctx.fillRect(this.x, this.y, this.w, this.h);
+			}};
+			game.addObject(newTowerItem);
 		}
 	}
 	game.mouseup = true;
@@ -292,7 +310,7 @@ game.drawObjects = function(){
 	game.ctx.fillStyle = "rgb(100,100,100)";
 	game.ctx.fillRect(0, 460, 500, 40);
 
-	for (var i = game.objects.length - 1; i >= 0; i--) {
+	for (var i = 0; i <= game.objects.length - 1; i++) {
 		//game.ctx.fillStyle = game.objects[i].color;
 		//game.ctx.fillRect(game.objects[i].x, game.objects[i].y, game.objects[i].w, game.objects[i].h);
 		game.objects[i].draw();
