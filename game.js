@@ -66,6 +66,11 @@ game.init = function(){
 	//game.canvas = document.getElementById('canvas');
 	
 
+	var towerPlacementGridSnapPositionShadow = {x: -100, y: -100, w: 30, h: 30, color: "rgba(0,100,0,.5)", type: 'towerPlacementGridSnapPositionShadow', canvas: 'base_canvas', draw: function(){
+		game.ctx.fillStyle = this.color;
+		game.ctx.fillRect(this.x, this.y, this.w, this.h);
+	}};
+	game.addObject(towerPlacementGridSnapPositionShadow);
 
 
 	game.initTowerPicker();
@@ -195,12 +200,45 @@ game.mousemoveHandler = function(event){
 		game.mouseState = DRAGGING;
 
 		if(game.DRAGGING_NEW_TOWER){
+
+			// Light up the grid spots where the tower could land
+
+			// Get the grid 'snap' position of the towerPlacementItem
+			// topYBounds = ? = gridSnapPositionOriginY
+			// bottomYBounds = ? = Doesn't matter
+			// leftXBounds = ? = gridSnapPositionOriginX
+			// rightXBounds = ? = Doesn't matter
+
+			// padding of 10 px on top
+			// padding of 5 px on left
+
+			var gridSnapPositionOriginY = Math.round((event.pageY + 7) / 30);
+			var gridSnapPositionOriginX = Math.round((event.pageX + 4) / 30);
+
+
 			for (var i = game.objects.length - 1; i >= 0; i--) {
 				if(game.objects[i].type === 'towerPlacementItem'){
 					game.objects[i].x = event.pageX - 15;
 					game.objects[i].y = event.pageY - 15;
 				}
+
+				if(game.objects[i].type === 'towerPlacementGridSnapPositionShadow'){
+					if((event.pageY + 5) < 460){ // Make the shadow appear when we are above the menu at the bottom
+						
+						game.objects[i].x = (gridSnapPositionOriginX * 30) - 20;
+						game.objects[i].y = (gridSnapPositionOriginY * 30) - 25;
+						game.log('Tower placement grid snap shadow X: ' + game.objects[i].x);
+					}
+					else{
+						game.objects[i].x = -100; // Make this hidden
+						game.objects[i].y = -100; // Make this hidden
+					}
+				}
 			}
+
+
+			// Use this as the potentialTowerPlacementPosition, which should snap to the towerPlacementGrid
+			// Later, we will color-code the potentialTowerPlacementPosition to indicate whether it is a legal play
 		}
 	}
 }
@@ -254,6 +292,10 @@ game.mousedownHandler = function(event){
 		}};
 		game.addObject(newTowerPlacementGrid);
 
+
+		
+		
+
 	}
 }
 
@@ -273,13 +315,18 @@ game.mouseupHandler = function(event){
 			game.delObjectByType('towerPlacementItem');
 			game.delObjectByType('towerPlacementGrid');
 
-			var towerColor = towerPlacementItem.color;
-			towerColor = towerColor.replace('.25','1');
-			var newTowerItem = {x: event.pageX - 15, y: event.pageY - 15, w: 30, h: 30, color: towerColor, type: 'towerItem', canvas: 'base_canvas', draw: function(){
-				game.ctx.fillStyle = this.color;
-				game.ctx.fillRect(this.x, this.y, this.w, this.h);
-			}};
-			game.addObject(newTowerItem);
+			var towerPlacementGridSnapPositionShadow = game.getObjectByType('towerPlacementGridSnapPositionShadow');
+
+			//if(isInsideValidGridSpace(towerPlacementItem)){ // To replace the line below - ensure the placementItem is inside a valid grid space
+			if(towerPlacementItem.y + 30 < 460){ // Need to clear the towerPicker bar - later, just see if we are snapping to a gridpoint
+				var towerColor = towerPlacementItem.color;
+				towerColor = towerColor.replace('.25','1');
+				var newTowerItem = {x: towerPlacementGridSnapPositionShadow.x, y: towerPlacementGridSnapPositionShadow.y, w: 30, h: 30, color: towerColor, type: 'towerItem', canvas: 'base_canvas', draw: function(){
+					game.ctx.fillStyle = this.color;
+					game.ctx.fillRect(this.x, this.y, this.w, this.h);
+				}};
+				game.addObject(newTowerItem);
+			}
 		}
 	}
 	game.mouseup = true;
