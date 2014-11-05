@@ -479,9 +479,9 @@ game.drawCreepers = function(){
 			}
 			else{
 				game.log("Game over! Score was: " + game.score);
-				game.ctx.fillStyle = "rgba(0,0,0,.5)";
+				game.ctx.fillStyle = "rgba(255,0,0,1)";
 				game.ctx.font="30px Arial";
-				game.ctx.fillText("Game Over!",160,250);
+				game.ctx.fillText("Game Over, Douche!",100,250);
 				game.over = true;
 			}
 		}
