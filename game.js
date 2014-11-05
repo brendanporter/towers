@@ -19,6 +19,9 @@ game.log = function(msg){
 
 game.init = function(){
 
+	game.lastCreeperRelease = Date.now();
+
+	game.starttime = Date.now();
 	game.mouseup = true;
 	game.mousedown = false;
 	game.mouseState = NONE;
@@ -28,6 +31,12 @@ game.init = function(){
 	game.container = document.getElementById('container');
 
 	game.objects = [];
+	game.creepers = [];
+	game.score = 0;
+
+	game.cash = 100;
+	game.lives = 20;
+	game.over = false;
 	// Layers needed
 	// Game chrome (menus, buttons)
 	// Tower drag layer
@@ -87,21 +96,36 @@ game.addObject = function(obj){
 	else{
 		obj.id = game.objects.last().id + 1;
 	}
-
 	game.objects.push(obj);
-
-	//game.objects.push(obj);
 }
 
-game.delObject = function(obj){
+game.addCreeper = function(creeper){
+	if(game.creepers.length === 0){
+		creeper.id = 0;
+	}
+	else{
+		creeper.id = game.creepers.last().id + 1;
+	}
+	game.creepers.push(creeper);
+}
 
+
+game.delObject = function(obj){
 	game.objects = game.objects.filter(function(e){
 		if(obj === e){
 			return false;
 		}
 		return true;
 	});
-	
+}
+
+game.delCreeper = function(creeper){
+	game.creepers = game.creepers.filter(function(e){
+		if(creeper === e){
+			return false;
+		}
+		return true;
+	});
 }
 
 game.getObjectByType = function(type){
@@ -147,7 +171,7 @@ game.addTowerToPicker = function(color){
 	var mousedownaction = function(){
 		console.log('Mouse down over a tower!');
 	}
-	var newTower = {x: (40 * (game.towerPickerItems.length + 1)), y: 465, w: 30, h: 30, color: towerColor, type: 'towerPickerItem', canvas: 'base_canvas', draggable: true, clickable: true, mousedown: mousedownaction, draw: function(){
+	var newTower = {x: (40 * (game.towerPickerItems.length + 1)), y: 465, w: 30, h: 30, cost: 30, color: towerColor, type: 'towerPickerItem', canvas: 'base_canvas', draggable: true, clickable: true, mousedown: mousedownaction, draw: function(){
 		game.ctx.fillStyle = this.color;
 		game.ctx.fillRect(this.x, this.y, this.w, this.h);
 	}};
@@ -227,7 +251,7 @@ game.mousemoveHandler = function(event){
 						
 						game.objects[i].x = (gridSnapPositionOriginX * 30) - 20;
 						game.objects[i].y = (gridSnapPositionOriginY * 30) - 25;
-						game.log('Tower placement grid snap shadow X: ' + game.objects[i].x);
+						//game.log('Tower placement grid snap shadow X: ' + game.objects[i].x);
 					}
 					else{
 						game.objects[i].x = -100; // Make this hidden
@@ -259,39 +283,45 @@ game.mousedownHandler = function(event){
 
 	//game.log('mousedown dragging context ' + game.DRAGGING_NEW_TOWER + ' and object type is ' + obj.type);
 	if(!game.DRAGGING_NEW_TOWER && obj.type === 'towerPickerItem'){
-		var newColor = obj.color;
-		newColor = newColor.replace(')',',.25)');
-		newColor = newColor.replace('rgb','rgba');
+		if(game.cash >= obj.cost){
+			var newColor = obj.color;
+			newColor = newColor.replace(')',',.25)');
+			newColor = newColor.replace('rgb','rgba');
 
-		var newTowerPlacement = {x: event.pageX - 15, y: event.pageY - 15, w: 30, h: 30, color: newColor, type: 'towerPlacementItem', canvas: 'base_canvas', draw: function(){
-			game.ctx.fillStyle = this.color;
-			game.ctx.fillRect(this.x, this.y, this.w, this.h);
-		}};
-		game.addObject(newTowerPlacement);
+			var newTowerPlacement = {x: event.pageX - 15, y: event.pageY - 15, w: 30, h: 30, color: newColor, type: 'towerPlacementItem', canvas: 'base_canvas', draw: function(){
+				game.ctx.fillStyle = this.color;
+				game.ctx.fillRect(this.x, this.y, this.w, this.h);
+			}};
+			game.addObject(newTowerPlacement);
 
-		game.DRAGGING_NEW_TOWER = true;
+			game.DRAGGING_NEW_TOWER = true;
 
 
-		var newTowerPlacementGrid = {x: 0, y: 0, w: 500, h: 460, color: 'rgba(200,200,200,.5)', type: 'towerPlacementGrid', canvas: 'base_canvas', draw: function(){
-			game.ctx.fillStyle = this.color;
-			for(i = 5; i <= this.h; i+=30){
-				// Draw horizontal grid lines
-				game.ctx.beginPath();
-				game.ctx.moveTo(10,i);
-				game.ctx.lineTo(490,i);
-				game.ctx.stroke();
-			}
-			for(i = 10; i <= this.w; i+=30){
-				// Draw vertical grid lines
-				game.ctx.beginPath();
-				game.ctx.moveTo(i,5);
-				game.ctx.lineTo(i,455);
-				game.ctx.stroke();
-			}
-			
-		}};
-		game.addObject(newTowerPlacementGrid);
-
+			var newTowerPlacementGrid = {x: 0, y: 0, w: 500, h: 460, color: 'rgba(200,200,200,.5)', type: 'towerPlacementGrid', canvas: 'base_canvas', draw: function(){
+				game.ctx.fillStyle = this.color;
+				for(i = 5; i <= this.h; i+=30){
+					// Draw horizontal grid lines
+					game.ctx.beginPath();
+					game.ctx.moveTo(10,i);
+					game.ctx.lineTo(490,i);
+					game.ctx.stroke();
+				}
+				for(i = 10; i <= this.w; i+=30){
+					// Draw vertical grid lines
+					game.ctx.beginPath();
+					game.ctx.moveTo(i,5);
+					game.ctx.lineTo(i,455);
+					game.ctx.stroke();
+				}
+				
+			}};
+			game.addObject(newTowerPlacementGrid);
+			game.cash -= obj.cost;
+			game.log("Cash reduced to $" + game.cash);
+		}
+		else{
+			game.log("Not enough cash!");
+		}
 
 		
 		
@@ -322,9 +352,53 @@ game.mouseupHandler = function(event){
 				var towerColor = towerPlacementItem.color;
 				towerColor = towerColor.replace('.25','1');
 				var newTowerItem = {x: towerPlacementGridSnapPositionShadow.x, y: towerPlacementGridSnapPositionShadow.y, w: 30, h: 30, color: towerColor, type: 'towerItem', canvas: 'base_canvas', draw: function(){
-					game.ctx.fillStyle = this.color;
-					game.ctx.fillRect(this.x, this.y, this.w, this.h);
-				}};
+						game.ctx.fillStyle = this.color;
+						game.ctx.fillRect(this.x, this.y, this.w, this.h);
+					},
+					range: 90,
+					timeOfLastDischarge: 0,
+					reloadTime: 2,
+					weaponReady: function(){
+						if(Date.now() >= this.timeOfLastDischarge + (this.reloadTime * 1000)){
+							return true;
+						}
+						return false;
+					},
+					isCreeperInRange: function(creeper){
+						//game.log('Checking if creeper is in range');
+						//console.log(creeper);
+						if(this.weaponReady()){
+							var creeperCenter = {x: creeper.x + 2.5, y: creeper.y + 2.5};
+							var towerCenter = {x: this.x + 15, y: this.y + 15};
+
+							// Get the distance from the center of the tower to the edge of the creeper (angular distance minus the creeper radius)
+							// Use the pythagorean theorem on the X,Y values to get the angular distance
+
+							var yDistance = Math.round(towerCenter.y - creeperCenter.y);
+							var xDistance = Math.round(towerCenter.x - creeperCenter.x);
+							var rangeDistance = Math.round(Math.sqrt((xDistance * xDistance) + (yDistance * yDistance))) - 2.5;
+
+
+							if(rangeDistance < this.range && this.weaponReady){
+								//game.log('Distance to creeper: ' + rangeDistance);
+								//game.log('Creeper is in range! DIE!');
+								this.fireWeaponAtCreeper(creeper);
+							}
+						}
+					},
+					fireWeaponAtCreeper: function(creeper){
+
+						this.timeOfLastDischarge = Date.now();
+						// Instantiate firing weapon animation
+						// Instantiate creeper death animation
+						// Delete creeper from battlefield
+						// Increment score, cash
+						game.delCreeper(creeper);
+						game.cash += 2;
+						game.score += 100;
+						game.log("Cash increased to $" + game.cash + ', score is now ' + game.score);
+					}
+				};
 				game.addObject(newTowerItem);
 			}
 		}
@@ -361,14 +435,82 @@ game.drawObjects = function(){
 		//game.ctx.fillStyle = game.objects[i].color;
 		//game.ctx.fillRect(game.objects[i].x, game.objects[i].y, game.objects[i].w, game.objects[i].h);
 		game.objects[i].draw();
+
 	}
 }
+
+game.drawCreepers = function(){
+	// Get the line of progression through the battlefield
+	//game.log('Drawing creepers');
+
+	for (var i = 0; i <= game.creepers.length - 1; i++) {
+		game.creepers[i].x += game.creepers[i].speed;
+
+		if(game.creepers[i].x > 500){
+			game.delCreeper(game.creepers[i]);
+			//game.log("One got away!");
+			game.lives--;
+			if(game.lives > 0){
+				game.log("Lives reduced to " + game.lives);
+			}
+			else{
+				game.log("Game over! Score was: " + game.score);
+				game.over = true;
+			}
+		}
+		game.creepers[i].draw();
+	}
+}
+
+
+game.releaseCreepers = function(){
+	
+	game.log('Releasing creepers');
+	// Instantiate the creepers for this "wave"
+	for (var i = 0; i < 10; i++) {
+		var newCreeper = {x: (i * -10) - 10, y: 250, w: 5, h: 5, color: "rgb(10,10,10)", type: 'towerItem', canvas: 'base_canvas', speed: 1, draw: function(){
+			game.ctx.fillStyle = this.color;
+			game.ctx.fillRect(this.x, this.y, this.w, this.h);
+		}};
+		game.addCreeper(newCreeper);
+	}
+	
+
+	game.lastCreeperRelease = Date.now();
+}
+
+
+game.shootCreepers = function(){
+	
+	for (var i = game.objects.length - 1; i >= 0; i--) {
+		if(game.objects[i].type === 'towerItem'){
+			
+			
+			for (var c = 0; c <= game.creepers.length - 1; c++) {
+				//game.log('Trying to shoot creepers');
+				game.objects[i].isCreeperInRange(game.creepers[c]);
+			}
+			
+		}
+	};
+
+}
+
 
 game.step = function(){
 
 	game.ctx.clearRect(0, 0, game.canvas.width, game.canvas.height);
 
+	if(Date.now() > (game.lastCreeperRelease + 5000)){
+		game.releaseCreepers();
+	}
+
 	game.drawObjects();
+	game.drawCreepers();
+
+	if(game.creepers.length > 0){
+		game.shootCreepers();
+	}
 
 	//game.log('dragging context ' + game.DRAGGING_NEW_TOWER);
 	/*
@@ -380,7 +522,9 @@ game.step = function(){
 
 	//game.log('stepping');
 	//setTimeout(function(){window.requestAnimationFrame(game.step)},1000);
-	window.requestAnimationFrame(game.step);
+	if(!game.over){
+		window.requestAnimationFrame(game.step);
+	}
 }
 
 
