@@ -37,6 +37,7 @@ game.init = function(){
 	game.cash = 100;
 	game.lives = 20;
 	game.over = false;
+	game.wave = 0;
 	// Layers needed
 	// Game chrome (menus, buttons)
 	// Tower drag layer
@@ -159,19 +160,31 @@ game.addTowerToPicker = function(color){
 	switch(color) {
 		case 'grey':
 			towerColor = "rgb(150,150,150)";
+			damage = 1;
+			range = 90;
+			cost = 15;
+			reloadTime = 1;
 		break;
 		case 'blue':
 			towerColor = "rgb(0,0,200)";
+			damage = 2;
+			range = 90;
+			cost = 20;
+			reloadTime = 1;
 		break;
 		case 'red':
 			towerColor = "rgb(200,0,0)";
+			damage = 3;
+			range = 70;
+			cost = 30;
+			reloadTime = 2;
 		break;
 	}
 
 	var mousedownaction = function(){
-		console.log('Mouse down over a tower!');
+		//console.log('Mouse down over a tower!');
 	}
-	var newTower = {x: (40 * (game.towerPickerItems.length + 1)), y: 465, w: 30, h: 30, cost: 30, color: towerColor, type: 'towerPickerItem', canvas: 'base_canvas', draggable: true, clickable: true, mousedown: mousedownaction, draw: function(){
+	var newTower = {x: (40 * (game.towerPickerItems.length + 1)), y: 465, w: 30, h: 30, reloadTime: reloadTime, range: range, damage: damage, cost: cost, color: towerColor, type: 'towerPickerItem', canvas: 'base_canvas', draggable: true, clickable: true, mousedown: mousedownaction, draw: function(){
 		game.ctx.fillStyle = this.color;
 		game.ctx.fillRect(this.x, this.y, this.w, this.h);
 	}};
@@ -288,7 +301,7 @@ game.mousedownHandler = function(event){
 			newColor = newColor.replace(')',',.25)');
 			newColor = newColor.replace('rgb','rgba');
 
-			var newTowerPlacement = {x: event.pageX - 15, y: event.pageY - 15, w: 30, h: 30, color: newColor, type: 'towerPlacementItem', canvas: 'base_canvas', draw: function(){
+			var newTowerPlacement = {x: event.pageX - 15, y: event.pageY - 15, w: 30, h: 30, cost: obj.cost, range: obj.range, reloadTime: obj.reloadTime, damage: obj.damage, color: newColor, type: 'towerPlacementItem', canvas: 'base_canvas', draw: function(){
 				game.ctx.fillStyle = this.color;
 				game.ctx.fillRect(this.x, this.y, this.w, this.h);
 			}};
@@ -349,15 +362,20 @@ game.mouseupHandler = function(event){
 
 			//if(isInsideValidGridSpace(towerPlacementItem)){ // To replace the line below - ensure the placementItem is inside a valid grid space
 			if(towerPlacementItem.y + 30 < 460){ // Need to clear the towerPicker bar - later, just see if we are snapping to a gridpoint
+				//console.log(towerPlacementItem);
 				var towerColor = towerPlacementItem.color;
 				towerColor = towerColor.replace('.25','1');
-				var newTowerItem = {x: towerPlacementGridSnapPositionShadow.x, y: towerPlacementGridSnapPositionShadow.y, w: 30, h: 30, color: towerColor, type: 'towerItem', canvas: 'base_canvas', draw: function(){
+				var newTowerItem = {x: towerPlacementGridSnapPositionShadow.x, y: towerPlacementGridSnapPositionShadow.y, w: 30, h: 30, draw: function(){
 						game.ctx.fillStyle = this.color;
 						game.ctx.fillRect(this.x, this.y, this.w, this.h);
 					},
-					range: 90,
+					canvas: 'base_canvas',
+					type: 'towerItem',
+					color: towerColor,
+					range: towerPlacementItem.range,
+					damage: towerPlacementItem.damage,
 					timeOfLastDischarge: 0,
-					reloadTime: 2,
+					reloadTime: towerPlacementItem.reloadTime,
 					weaponReady: function(){
 						if(Date.now() >= this.timeOfLastDischarge + (this.reloadTime * 1000)){
 							return true;
@@ -368,7 +386,7 @@ game.mouseupHandler = function(event){
 						//game.log('Checking if creeper is in range');
 						//console.log(creeper);
 						if(this.weaponReady()){
-							var creeperCenter = {x: creeper.x + 2.5, y: creeper.y + 2.5};
+							var creeperCenter = {x: creeper.x + (creeper.w / 2), y: creeper.y + (creeper.h / 2)};
 							var towerCenter = {x: this.x + 15, y: this.y + 15};
 
 							// Get the distance from the center of the tower to the edge of the creeper (angular distance minus the creeper radius)
@@ -393,10 +411,14 @@ game.mouseupHandler = function(event){
 						// Instantiate creeper death animation
 						// Delete creeper from battlefield
 						// Increment score, cash
-						game.delCreeper(creeper);
-						game.cash += 2;
-						game.score += 100;
-						game.log("Cash increased to $" + game.cash + ', score is now ' + game.score);
+						creeper.health -= this.damage;
+						if(creeper.health <= 0){
+							game.delCreeper(creeper);
+							game.cash += creeper.cashReward;
+							game.score += creeper.scoreReward;
+							//game.log("Cash increased to $" + game.cash + ', score is now ' + game.score);
+						}
+						
 					}
 				};
 				game.addObject(newTowerItem);
@@ -445,30 +467,62 @@ game.drawCreepers = function(){
 
 	for (var i = 0; i <= game.creepers.length - 1; i++) {
 		game.creepers[i].x += game.creepers[i].speed;
-
+		game.creepers[i].draw();
 		if(game.creepers[i].x > 500){
+
 			game.delCreeper(game.creepers[i]);
 			//game.log("One got away!");
 			game.lives--;
 			if(game.lives > 0){
 				game.log("Lives reduced to " + game.lives);
+
 			}
 			else{
 				game.log("Game over! Score was: " + game.score);
+				game.ctx.fillStyle = "rgba(0,0,0,.5)";
+				game.ctx.font="30px Arial";
+				game.ctx.fillText("Game Over!",160,250);
 				game.over = true;
 			}
 		}
-		game.creepers[i].draw();
+		
 	}
 }
 
 
 game.releaseCreepers = function(){
-	
-	game.log('Releasing creepers');
+	game.wave++;
+	//game.log('Releasing creepers');
 	// Instantiate the creepers for this "wave"
+
+	var health = 1;
+	var color = "rgb(110,110,110)"
+	var height = 5;
+	var width = 5;
+	var speed = 1;
+	var cashReward = 2;
+	var scoreReward = 100;
+
 	for (var i = 0; i < 10; i++) {
-		var newCreeper = {x: (i * -10) - 10, y: 250, w: 5, h: 5, color: "rgb(10,10,10)", type: 'towerItem', canvas: 'base_canvas', speed: 1, draw: function(){
+		health = 1;
+		color = "rgb(110,110,110)"
+		height = 5;
+		width = 5;
+		speed = 5;
+		cashReward = 2;
+		scoreReward = 100;
+
+		if(Math.floor((Math.random() * 10) + 1) === 10){
+			health = 3;
+			color = "rgb(10,10,10)";
+			height = 8;
+			width = 8;
+			speed = .5;
+			cashReward = 5;
+			scoreReward = 200;
+		}
+
+		var newCreeper = {x: (i * -10) - 10, y: 250, w: width, h: height, health: health, color: color, cashReward: cashReward, scoreReward: scoreReward, type: 'towerItem', canvas: 'base_canvas', speed: speed, draw: function(){
 			game.ctx.fillStyle = this.color;
 			game.ctx.fillRect(this.x, this.y, this.w, this.h);
 		}};
@@ -497,6 +551,15 @@ game.shootCreepers = function(){
 }
 
 
+game.drawStats = function(){
+	game.ctx.font="12px Arial";
+	game.ctx.fillStyle = "rgb(255,255,255)";
+	game.ctx.fillText("Score: " + game.score, 420, 475);
+	game.ctx.fillText("Cash: $" + game.cash, 420, 490);
+	game.ctx.fillText("Lives: " + game.lives, 360, 475);
+	game.ctx.fillText("Wave: " + game.wave, 360, 490);
+}
+
 game.step = function(){
 
 	game.ctx.clearRect(0, 0, game.canvas.width, game.canvas.height);
@@ -511,6 +574,8 @@ game.step = function(){
 	if(game.creepers.length > 0){
 		game.shootCreepers();
 	}
+
+	game.drawStats();
 
 	//game.log('dragging context ' + game.DRAGGING_NEW_TOWER);
 	/*
