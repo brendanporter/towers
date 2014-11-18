@@ -17,6 +17,57 @@ game.log = function(msg){
 	console.log('Log: ' + msg);
 }
 
+
+game.initGrid = function(){
+	var nodesX = (500 - 20) / 30;
+	var nodesY = (460 - 10) / 30;
+
+	var nodes = [];
+	for (var x = 0; x <= nodesX; x++) {
+		nodes[x] = [];
+		for (var y = 0; y <= nodesY; y++) {
+			nodes[x][y] = 1;
+		}
+	}
+
+	game.grid = nodes;
+}
+
+
+game.nodeForCoordinates = function(x,y){
+	return {x: Math.round(x / 30) - 1, y: Math.round(y / 30) - 1}; // returns a node location object with x,y
+}
+
+game.updateGrid = function(){
+	// Set the weight of the nodes to 100 if there is an object on the node
+
+	var nodesX = (500 - 20) / 30;
+	var nodesY = (460 - 10) / 30;
+
+	var nodes = [];
+	for (var x = 0; x <= nodesX; x++) {
+		nodes[x] = [];
+		for (var y = 0; y <= nodesY; y++) {
+			nodes[x][y] = 1;
+		}
+	}
+
+	for (var i = game.objects.length - 1; i >= 0; i--) {
+		if(game.objects[i].type === 'towerItem'){
+			var c = game.nodeForCoordinates(game.objects[i].x + 15,game.objects[i].y + 15);
+			nodes[c.x][c.y] = 100;
+			game.log('Node ' + c.x + ' ' + c.y + ' weight set to 100');
+			//game.log(nodes[c.x]);
+		}
+	};
+
+	game.log('Updated Grid');
+
+
+	game.grid = nodes;
+	game.graph = new Graph(nodes);
+}
+
 game.init = function(){
 
 	game.lastCreeperRelease = Date.now();
@@ -38,6 +89,17 @@ game.init = function(){
 	game.lives = 20;
 	game.over = false;
 	game.wave = 0;
+
+
+	// Define the 'grid' of positions on the battlefield.
+	game.grid = [];
+	game.initGrid();
+	game.graph = new Graph(game.grid);
+
+	game.start = game.graph.grid[0][7];
+	game.end = game.graph.grid[15][7];
+
+	game.path;
 	// Layers needed
 	// Game chrome (menus, buttons)
 	// Tower drag layer
@@ -65,7 +127,6 @@ game.init = function(){
 		game[canvas_name].addEventListener("mousemove", game.mousemoveHandler, false);
 		game[canvas_name].addEventListener("mousedown",game.mousedownHandler,false);
 		game[canvas_name].addEventListener("mouseup",game.mouseupHandler,false);
-
 	}
 	
 
@@ -146,7 +207,6 @@ game.delObjectByType = function(type){
 		}
 		return true;
 	});
-	
 }
 
 
@@ -207,7 +267,6 @@ game.initTowerPicker = function(){
 	game.addTowerToPicker('grey');
 	game.addTowerToPicker('blue');
 	game.addTowerToPicker('red');
-
 }
 
 
@@ -422,6 +481,7 @@ game.mouseupHandler = function(event){
 					}
 				};
 				game.addObject(newTowerItem);
+				game.updateGrid();
 			}
 		}
 	}
@@ -466,6 +526,12 @@ game.drawCreepers = function(){
 	//game.log('Drawing creepers');
 
 	for (var i = 0; i <= game.creepers.length - 1; i++) {
+
+
+		// Using A* algorithm to determine path to finish
+		// http://bgrins.github.io/javascript-astar/
+		game.path = astar.search(game.graph, game.start, game.end);
+
 		game.creepers[i].x += game.creepers[i].speed;
 		game.creepers[i].draw();
 		if(game.creepers[i].x > 500){
@@ -474,11 +540,11 @@ game.drawCreepers = function(){
 			//game.log("One got away!");
 			game.lives--;
 			if(game.lives > 0){
-				game.log("Lives reduced to " + game.lives);
+				//game.log("Lives reduced to " + game.lives);
 
 			}
 			else{
-				game.log("Game over! Score was: " + game.score);
+				//game.log("Game over! Score was: " + game.score);
 				game.ctx.fillStyle = "rgba(255,0,0,1)";
 				game.ctx.font="30px Arial";
 				game.ctx.fillText("Game Over, Douche!",100,250);
@@ -508,7 +574,7 @@ game.releaseCreepers = function(){
 		color = "rgb(110,110,110)"
 		height = 5;
 		width = 5;
-		speed = 5;
+		speed = 1;
 		cashReward = 2;
 		scoreReward = 100;
 
