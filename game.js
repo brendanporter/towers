@@ -39,7 +39,7 @@ game.nodeForCoordinates = function(x,y){
 }
 
 game.updateGrid = function(){
-	// Set the weight of the nodes to 100 if there is an object on the node
+	// Set the weight of the nodes to 0 if there is an object on the node
 
 	var nodesX = (500 - 20) / 30;
 	var nodesY = (460 - 10) / 30;
@@ -52,11 +52,11 @@ game.updateGrid = function(){
 		}
 	}
 
-	for (var i = game.objects.length - 1; i >= 0; i--) {
+	for (var i = 0; i <= game.objects.length - 1; i++) {
 		if(game.objects[i].type === 'towerItem'){
 			var c = game.nodeForCoordinates(game.objects[i].x + 15,game.objects[i].y + 15);
-			nodes[c.x][c.y] = 100;
-			game.log('Node ' + c.x + ' ' + c.y + ' weight set to 100');
+			nodes[c.x][c.y] = 0;
+			game.log('Node ' + c.x + ' ' + c.y + ' weight set to 0 (wall)');
 			//game.log(nodes[c.x]);
 		}
 	};
@@ -65,7 +65,7 @@ game.updateGrid = function(){
 
 
 	game.grid = nodes;
-	game.graph = new Graph(nodes);
+
 }
 
 game.init = function(){
@@ -99,7 +99,6 @@ game.init = function(){
 	game.start = game.graph.grid[0][7];
 	game.end = game.graph.grid[15][7];
 
-	game.path;
 	// Layers needed
 	// Game chrome (menus, buttons)
 	// Tower drag layer
@@ -482,6 +481,10 @@ game.mouseupHandler = function(event){
 				};
 				game.addObject(newTowerItem);
 				game.updateGrid();
+				game.graph = new Graph(game.grid);
+				// Using A* algorithm to determine path to finish
+				// http://bgrins.github.io/javascript-astar/
+				game.path = astar.search(game.graph, game.start, game.end);
 			}
 		}
 	}
@@ -528,9 +531,7 @@ game.drawCreepers = function(){
 	for (var i = 0; i <= game.creepers.length - 1; i++) {
 
 
-		// Using A* algorithm to determine path to finish
-		// http://bgrins.github.io/javascript-astar/
-		game.path = astar.search(game.graph, game.start, game.end);
+		
 
 		game.creepers[i].x += game.creepers[i].speed;
 		game.creepers[i].draw();

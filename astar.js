@@ -135,6 +135,7 @@ var astar = {
         }
 
         // No result was found - empty array signifies failure to find path.
+        console.log('No path found');
         return [];
     },
     // See list of heuristics: http://theory.stanford.edu/~amitp/GameProgramming/Heuristics.html
