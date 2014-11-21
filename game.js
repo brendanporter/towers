@@ -548,11 +548,10 @@ game.drawCreepers = function(){
 		// get the direction of the next movement relative to the next A* grid node
 		//for (var j = 0; j < game.path.length; j++) {
 			
-			if(game.creepers[i].x < 15){
+			if(game.creepers[i].x < 15 || game.creepers[i].x > 460){
 				game.creepers[i].x += game.creepers[i].speed;
 			}
 			else{
-
 
 				var creeperLoc = game.graph.grid[Math.floor((game.creepers[i].x - 10)/30)][Math.floor((game.creepers[i].y - 5)/30)];
 				var creeperPath = astar.search(game.graph, creeperLoc, game.end);
@@ -560,30 +559,30 @@ game.drawCreepers = function(){
 				//console.log('Should be moving....');
 				//if(game.path[j].x === creeperNodePositionX && game.path[j].y === creeperNodePositionY){
 
-					nextNodePosition.x = ((creeperPath[0].x) * 30) + 15;
-					nextNodePosition.y = ((creeperPath[0].y) * 30) + 15;
+				nextNodePosition.x = ((creeperPath[0].x) * 30) + 15;
+				nextNodePosition.y = ((creeperPath[0].y) * 30) + 15;
 
-					//console.log(nextNodePosition);
-					//console.log('Changing position of creeper');
+				//console.log(nextNodePosition);
+				//console.log('Changing position of creeper');
 
-					if(nextNodePosition.x > game.creepers[i].x){
-						// Right
-						//console.log('moving right');
-						game.creepers[i].x += game.creepers[i].speed;
-					}
-					else if(nextNodePosition.x < game.creepers[i].x){
-						// Left
-						game.creepers[i].x -= game.creepers[i].speed;
-					}
+				if(nextNodePosition.x > game.creepers[i].x){
+					// Right
+					//console.log('moving right');
+					game.creepers[i].x += game.creepers[i].speed;
+				}
+				else if(nextNodePosition.x < game.creepers[i].x){
+					// Left
+					game.creepers[i].x -= game.creepers[i].speed;
+				}
 
-					if(nextNodePosition.y > game.creepers[i].y){
-						// Down
-						game.creepers[i].y += game.creepers[i].speed;
-					}
-					else if(nextNodePosition.y < game.creepers[i].y){
-						// Up
-						game.creepers[i].y -= game.creepers[i].speed;
-					}
+				if(nextNodePosition.y > game.creepers[i].y){
+					// Down
+					game.creepers[i].y += game.creepers[i].speed;
+				}
+				else if(nextNodePosition.y < game.creepers[i].y){
+					// Up
+					game.creepers[i].y -= game.creepers[i].speed;
+				}
 					//continue;
 				//}
 			}
