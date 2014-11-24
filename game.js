@@ -25,7 +25,7 @@ game.nodeForCoordinates = function(x,y){
 game.updateGrid = function(){
 	// Set the weight of the nodes to 0 if there is an object on the node
 
-	var nodesX = (500 - 20) / 30;
+	var nodesX = (500 - 50) / 30;
 	var nodesY = (460 - 40) / 30;
 
 	var nodes = [];
@@ -37,7 +37,7 @@ game.updateGrid = function(){
 				weight = 0;
 				var wall = {
 					// Create wall 
-					x: (30 * x) + 5, y: (30 * y) + 10, w: 30, h: 30, color: "rgba(0,0,0,.5)", type: 'towerPlacementGridSnapPositionShadow', canvas: 'base_canvas', draw: function(){
+					x: (30 * x) + 5, y: (30 * y) + 10, w: 30, h: 30, color: "rgba(0,0,0,.5)", type: 'wall', canvas: 'base_canvas', draw: function(){
 						game.ctx.fillStyle = this.color;
 						game.ctx.fillRect(this.x, this.y, this.w, this.h);
 					}
@@ -138,7 +138,23 @@ game.init = function(){
 
 	var towerPlacementGridSnapPositionShadow = {x: -100, y: -100, w: 30, h: 30, color: "rgba(0,100,0,.5)", type: 'towerPlacementGridSnapPositionShadow', canvas: 'base_canvas', draw: function(){
 		game.ctx.fillStyle = this.color;
-		game.ctx.fillRect(this.x, this.y, this.w, this.h);
+		//game.ctx.fillRect(this.x, this.y, this.w, this.h);
+
+		game.ctx.beginPath();
+		game.ctx.arc(this.x + 15, this.y + 15, this.range / 2, 0, 2 * Math.PI,false);
+		game.ctx.fill();
+		game.ctx.lineWidth = 1;
+		game.ctx.strokeStyle = 'rgba(100,100,100,.25)';
+		game.ctx.stroke();
+
+		game.ctx.beginPath();
+		game.ctx.arc(this.x + 15, this.y + 15, this.w / 2, 0, 2 * Math.PI,false);
+		game.ctx.fill();
+		game.ctx.lineWidth = 2;
+		game.ctx.strokeStyle = this.color;
+		game.ctx.stroke();
+
+		
 	}};
 	game.addObject(towerPlacementGridSnapPositionShadow);
 
@@ -315,6 +331,8 @@ game.mousemoveHandler = function(event){
 				if(game.objects[i].type === 'towerPlacementItem'){
 					game.objects[i].x = event.pageX - 15;
 					game.objects[i].y = event.pageY - 15;
+
+					
 				}
 
 				if(game.objects[i].type === 'towerPlacementGridSnapPositionShadow'){
@@ -323,6 +341,37 @@ game.mousemoveHandler = function(event){
 						game.objects[i].x = (gridSnapPositionOriginX * 30) - 20;
 						game.objects[i].y = (gridSnapPositionOriginY * 30) - 25;
 						//game.log('Tower placement grid snap shadow X: ' + game.objects[i].x);
+
+						game.VALID_TOWER_LOCATION = true;
+						// Determine if there is a valid path if the current tower position is played
+						var c = game.nodeForCoordinates(game.objects[i].x + 15,game.objects[i].y + 15);
+						if(game.grid[c.x][c.y] === 1){
+							//game.log('Potentially valid play');
+							// Potentially valid play
+							game.grid[c.x][c.y] = 0;
+							game.graph = new Graph(game.grid);
+							game.start = game.graph.grid[0][8];
+							game.end = game.graph.grid[15][8];
+							game.path = astar.search(game.graph, game.start, game.end);
+
+							if(game.path.length === 0){
+								game.VALID_TOWER_LOCATION = false;
+								//game.log('Invalid tower placement - blocks path');
+							}
+
+							game.grid[c.x][c.y] = 1;
+							game.graph = new Graph(game.grid);
+							game.start = game.graph.grid[0][8];
+							game.end = game.graph.grid[15][8];
+							game.path = astar.search(game.graph, game.start, game.end);
+						}
+						else{
+							// Something is already here...
+							game.VALID_TOWER_LOCATION = false;
+							//game.log('Something is already here...');
+						}
+						
+
 					}
 					else{
 						game.objects[i].x = -100; // Make this hidden
@@ -334,6 +383,9 @@ game.mousemoveHandler = function(event){
 
 			// Use this as the potentialTowerPlacementPosition, which should snap to the towerPlacementGrid
 			// Later, we will color-code the potentialTowerPlacementPosition to indicate whether it is a legal play
+
+
+
 		}
 	}
 }
@@ -360,8 +412,29 @@ game.mousedownHandler = function(event){
 			newColor = newColor.replace('rgb','rgba');
 
 			var newTowerPlacement = {x: event.pageX - 15, y: event.pageY - 15, w: 30, h: 30, cost: obj.cost, range: obj.range, reloadTime: obj.reloadTime, damage: obj.damage, color: newColor, type: 'towerPlacementItem', canvas: 'base_canvas', draw: function(){
-				game.ctx.fillStyle = this.color;
-				game.ctx.fillRect(this.x, this.y, this.w, this.h);
+				//game.ctx.fillRect(this.x, this.y, this.w, this.h);
+
+				if(game.VALID_TOWER_LOCATION){
+					game.ctx.fillStyle = this.color;
+				}
+				else{
+					game.ctx.fillStyle = 'rgba(255,0,0,.5)';
+				}
+				game.ctx.beginPath();
+				game.ctx.arc(this.x + 15, this.y + 15, this.range / 2, 0, 2 * Math.PI,false);
+				game.ctx.fill();
+				game.ctx.lineWidth = 1;
+				game.ctx.strokeStyle = 'rgba(100,100,100,.25)';
+				game.ctx.stroke();
+
+				game.ctx.beginPath();
+				game.ctx.arc(this.x + 15, this.y + 15, this.w / 2, 0, 2 * Math.PI,false);
+				game.ctx.fill();
+				game.ctx.lineWidth = 2;
+				game.ctx.strokeStyle = this.color;
+				game.ctx.stroke();
+
+
 			}};
 			game.addObject(newTowerPlacement);
 
@@ -425,7 +498,14 @@ game.mouseupHandler = function(event){
 				towerColor = towerColor.replace('.25','1');
 				var newTowerItem = {x: towerPlacementGridSnapPositionShadow.x, y: towerPlacementGridSnapPositionShadow.y, w: 30, h: 30, draw: function(){
 						game.ctx.fillStyle = this.color;
-						game.ctx.fillRect(this.x, this.y, this.w, this.h);
+						//game.ctx.fillRect(this.x, this.y, this.w, this.h);
+
+						game.ctx.beginPath();
+						game.ctx.arc(this.x + 15, this.y + 15, this.w / 2, 0, 2 * Math.PI,false);
+				    	game.ctx.fill();
+				    	game.ctx.lineWidth = 2;
+				    	game.ctx.strokeStyle = this.color;
+				    	game.ctx.stroke();
 					},
 					canvas: 'base_canvas',
 					type: 'towerItem',
@@ -499,19 +579,6 @@ game.mouseupHandler = function(event){
 
 }
 
-
-game.drawTowerDragContext = function(){
-	//game.log('Dragging tower placement');
-
-	for (var i = 0; i <= game.objects.length - 1; i++) {
-		if(game.objects[i].type === 'towerPlacementItem'){
-			//game.log('Tower placement item: ');
-			//game.log(game.objects[i]);
-			game.ctx.fillStyle = game.objects[i].color;
-			game.ctx.fillRect(game.objects[i].x, game.objects[i].y, game.objects[i].w, game.objects[i].h);
-		}
-	}
-}
 
 game.drawObjects = function(){
 
@@ -706,16 +773,8 @@ game.step = function(){
 		game.ctx.fillText("Game Paused",160,250);
 	}
 
-	//game.log('dragging context ' + game.DRAGGING_NEW_TOWER);
-	/*
-	if(game.DRAGGING_NEW_TOWER){
-		game.drawTowerDragContext();
-	}*/
 
-	//game.log('Number of objects: ' + game.objects.length);
 
-	//game.log('stepping');
-	//setTimeout(function(){window.requestAnimationFrame(game.step)},1000);
 	if(!game.over){
 		window.requestAnimationFrame(game.step);
 	}
