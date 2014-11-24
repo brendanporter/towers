@@ -18,22 +18,6 @@ game.log = function(msg){
 }
 
 
-game.initGrid = function(){
-	var nodesX = (500 - 20) / 30;
-	var nodesY = (460 - 10) / 30;
-
-	var nodes = [];
-	for (var x = 0; x <= nodesX; x++) {
-		nodes[x] = [];
-		for (var y = 0; y <= nodesY; y++) {
-			nodes[x][y] = 1;
-		}
-	}
-
-	game.grid = nodes;
-}
-
-
 game.nodeForCoordinates = function(x,y){
 	return {x: Math.round(x / 30) - 1, y: Math.round(y / 30) - 1}; // returns a node location object with x,y
 }
@@ -42,13 +26,28 @@ game.updateGrid = function(){
 	// Set the weight of the nodes to 0 if there is an object on the node
 
 	var nodesX = (500 - 20) / 30;
-	var nodesY = (460 - 10) / 30;
+	var nodesY = (460 - 40) / 30;
 
 	var nodes = [];
+	var weight;
 	for (var x = 0; x <= nodesX; x++) {
 		nodes[x] = [];
 		for (var y = 0; y <= nodesY; y++) {
-			nodes[x][y] = 1;
+			if( (x === 0 && y !== 8) || (x === 15 && y !== 8) || y === 0 || y === 14 ){
+				weight = 0;
+				var wall = {
+					// Create wall 
+					x: (30 * x) + 5, y: (30 * y) + 10, w: 30, h: 30, color: "rgba(0,0,0,.5)", type: 'towerPlacementGridSnapPositionShadow', canvas: 'base_canvas', draw: function(){
+						game.ctx.fillStyle = this.color;
+						game.ctx.fillRect(this.x, this.y, this.w, this.h);
+					}
+				};
+				game.addObject(wall);
+			}
+			else {
+				weight = 1;
+			}
+			nodes[x][y] = weight;
 		}
 	}
 
@@ -90,13 +89,15 @@ game.init = function(){
 	game.over = false;
 	game.wave = 0;
 
+	game.paused = false;
+
 
 	// Define the 'grid' of positions on the battlefield.
-	game.initGrid();
+	game.updateGrid();
 	game.graph = new Graph(game.grid);
 
-	game.start = game.graph.grid[0][9];
-	game.end = game.graph.grid[15][9];
+	game.start = game.graph.grid[0][8];
+	game.end = game.graph.grid[15][8];
 	game.path = astar.search(game.graph, game.start, game.end);
 	// Layers needed
 	// Game chrome (menus, buttons)
@@ -481,8 +482,8 @@ game.mouseupHandler = function(event){
 				game.addObject(newTowerItem);
 				game.updateGrid();
 				game.graph = new Graph(game.grid);
-				game.start = game.graph.grid[0][9];
-				game.end = game.graph.grid[15][9];
+				game.start = game.graph.grid[0][8];
+				game.end = game.graph.grid[15][8];
 
 				// Using A* algorithm to determine path to finish
 				// http://bgrins.github.io/javascript-astar/
@@ -532,39 +533,32 @@ game.drawCreepers = function(){
 
 	for (var i = 0; i < game.creepers.length; i++) {
 
-		// get the A* grid node location of this creeper
-		//var creeperNodeCoordinates = game.nodeForCoordinates(,game.creepers[i].y + (game.creepers[i].h/2));
-		//var creeperNodePositionX = Math.round((game.creepers[i].x + (game.creepers[i].w/2)) / 30);
-		//var creeperNodePositionY = Math.round((game.creepers[i].y + (game.creepers[i].h/2)) / 30);
-		
-		//var creeperNodePositionX = Math.floor(((game.creepers[i].x - 10) / 30)) + 1;
-		//var creeperNodePositionY = Math.floor(((game.creepers[i].y - 5) / 30)) + 1;
 		var nextNodePosition = {};
 
 		
 
 		//console.log('Creeper node position x: ' + creeperNodePositionX + ' y:: ' + creeperNodePositionY);
 
-		// get the direction of the next movement relative to the next A* grid node
-		//for (var j = 0; j < game.path.length; j++) {
-			
-			if(game.creepers[i].x < 15 || game.creepers[i].x > 460){
+
+		if(game.creepers[i].x < 40 || game.creepers[i].x >= 460){
+			if(!game.paused){
 				game.creepers[i].x += game.creepers[i].speed;
 			}
-			else{
+		}
+		else{
 
-				var creeperLoc = game.graph.grid[Math.floor((game.creepers[i].x - 10)/30)][Math.floor((game.creepers[i].y - 5)/30)];
-				var creeperPath = astar.search(game.graph, creeperLoc, game.end);
+			var creeperLoc = game.graph.grid[Math.floor((game.creepers[i].x - 10)/30)][Math.floor((game.creepers[i].y - 5)/30)];
+			var creeperPath = astar.search(game.graph, creeperLoc, game.end);
 
-				//console.log('Should be moving....');
-				//if(game.path[j].x === creeperNodePositionX && game.path[j].y === creeperNodePositionY){
+			//console.log('Should be moving....');
 
-				nextNodePosition.x = ((creeperPath[0].x) * 30) + 15;
-				nextNodePosition.y = ((creeperPath[0].y) * 30) + 15;
+			nextNodePosition.x = ((creeperPath[0].x) * 30) + 15;
+			nextNodePosition.y = ((creeperPath[0].y) * 30) + 15;
 
-				//console.log(nextNodePosition);
-				//console.log('Changing position of creeper');
+			//console.log(nextNodePosition);
+			//console.log('Changing position of creeper');
 
+			if(!game.paused){
 				if(nextNodePosition.x > game.creepers[i].x){
 					// Right
 					//console.log('moving right');
@@ -583,15 +577,10 @@ game.drawCreepers = function(){
 					// Up
 					game.creepers[i].y -= game.creepers[i].speed;
 				}
-					//continue;
-				//}
+
 			}
-		//}
 
-		
-
-
-		
+		}
 
 
 
@@ -632,7 +621,7 @@ game.releaseCreepers = function(){
 	var scoreReward = 100;
 
 	for (var i = 0; i < 10; i++) {
-		health = 1;
+		health = 3;
 		color = "rgb(110,110,110)"
 		height = 5;
 		width = 5;
@@ -692,18 +681,30 @@ game.step = function(){
 
 	game.ctx.clearRect(0, 0, game.canvas.width, game.canvas.height);
 
-	if(Date.now() > (game.lastCreeperRelease + 5000)){
-		game.releaseCreepers();
+	if(!game.paused){
+		if(Date.now() > (game.lastCreeperRelease + 5000)){
+			game.releaseCreepers();
+		}
 	}
+
+	
 
 	game.drawObjects();
 	game.drawCreepers();
 
-	if(game.creepers.length > 0){
-		game.shootCreepers();
+	if(!game.paused){
+		if(game.creepers.length > 0){
+			game.shootCreepers();
+		}
 	}
 
 	game.drawStats();
+
+	if(game.paused){
+		game.ctx.font="26px Arial";
+		game.ctx.fillStyle = "rgba(0,0,255,.75)";
+		game.ctx.fillText("Game Paused",160,250);
+	}
 
 	//game.log('dragging context ' + game.DRAGGING_NEW_TOWER);
 	/*
