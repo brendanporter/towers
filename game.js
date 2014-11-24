@@ -331,8 +331,6 @@ game.mousemoveHandler = function(event){
 				if(game.objects[i].type === 'towerPlacementItem'){
 					game.objects[i].x = event.pageX - 15;
 					game.objects[i].y = event.pageY - 15;
-
-					
 				}
 
 				if(game.objects[i].type === 'towerPlacementGridSnapPositionShadow'){
@@ -483,91 +481,101 @@ game.mouseupHandler = function(event){
 
 		if(game.DRAGGING_NEW_TOWER === true){
 			game.log('Finished dragging new tower placement');
-			// Place new tower on battlefield
-			// Delete tower dragging context
-			var towerPlacementItem = game.getObjectByType('towerPlacementItem');
-			game.delObjectByType('towerPlacementItem');
-			game.delObjectByType('towerPlacementGrid');
+			if(!game.VALID_TOWER_LOCATION){
+				game.log('Invalid tower placement. Tower placement aborted.')
+				//var towerPlacementItem = game.getObjectByType('towerPlacementItem');
+				game.delObjectByType('towerPlacementItem');
+				game.delObjectByType('towerPlacementGrid');
+				var towerPlacementGridSnapPositionShadow = game.getObjectByType('towerPlacementGridSnapPositionShadow');
+				towerPlacementGridSnapPositionShadow.x = -100;
+			}
+			else{
+				// Place new tower on battlefield
+				// Delete tower dragging context
+				var towerPlacementItem = game.getObjectByType('towerPlacementItem');
+				game.delObjectByType('towerPlacementItem');
+				game.delObjectByType('towerPlacementGrid');
 
-			var towerPlacementGridSnapPositionShadow = game.getObjectByType('towerPlacementGridSnapPositionShadow');
+				var towerPlacementGridSnapPositionShadow = game.getObjectByType('towerPlacementGridSnapPositionShadow');
 
-			//if(isInsideValidGridSpace(towerPlacementItem)){ // To replace the line below - ensure the placementItem is inside a valid grid space
-			if(towerPlacementItem.y + 30 < 460){ // Need to clear the towerPicker bar - later, just see if we are snapping to a gridpoint
-				//console.log(towerPlacementItem);
-				var towerColor = towerPlacementItem.color;
-				towerColor = towerColor.replace('.25','1');
-				var newTowerItem = {x: towerPlacementGridSnapPositionShadow.x, y: towerPlacementGridSnapPositionShadow.y, w: 30, h: 30, draw: function(){
-						game.ctx.fillStyle = this.color;
-						//game.ctx.fillRect(this.x, this.y, this.w, this.h);
+				//if(isInsideValidGridSpace(towerPlacementItem)){ // To replace the line below - ensure the placementItem is inside a valid grid space
+				if(towerPlacementItem.y + 30 < 460){ // Need to clear the towerPicker bar - later, just see if we are snapping to a gridpoint
+					//console.log(towerPlacementItem);
+					var towerColor = towerPlacementItem.color;
+					towerColor = towerColor.replace('.25','1');
+					var newTowerItem = {x: towerPlacementGridSnapPositionShadow.x, y: towerPlacementGridSnapPositionShadow.y, w: 30, h: 30, draw: function(){
+							game.ctx.fillStyle = this.color;
+							//game.ctx.fillRect(this.x, this.y, this.w, this.h);
 
-						game.ctx.beginPath();
-						game.ctx.arc(this.x + 15, this.y + 15, this.w / 2, 0, 2 * Math.PI,false);
-				    	game.ctx.fill();
-				    	game.ctx.lineWidth = 2;
-				    	game.ctx.strokeStyle = this.color;
-				    	game.ctx.stroke();
-					},
-					canvas: 'base_canvas',
-					type: 'towerItem',
-					color: towerColor,
-					range: towerPlacementItem.range,
-					damage: towerPlacementItem.damage,
-					timeOfLastDischarge: 0,
-					reloadTime: towerPlacementItem.reloadTime,
-					weaponReady: function(){
-						if(Date.now() >= this.timeOfLastDischarge + (this.reloadTime * 1000)){
-							return true;
-						}
-						return false;
-					},
-					isCreeperInRange: function(creeper){
-						//game.log('Checking if creeper is in range');
-						//console.log(creeper);
-						if(this.weaponReady()){
-							var creeperCenter = {x: creeper.x + (creeper.w / 2), y: creeper.y + (creeper.h / 2)};
-							var towerCenter = {x: this.x + 15, y: this.y + 15};
-
-							// Get the distance from the center of the tower to the edge of the creeper (angular distance minus the creeper radius)
-							// Use the pythagorean theorem on the X,Y values to get the angular distance
-
-							var yDistance = Math.round(towerCenter.y - creeperCenter.y);
-							var xDistance = Math.round(towerCenter.x - creeperCenter.x);
-							var rangeDistance = Math.round(Math.sqrt((xDistance * xDistance) + (yDistance * yDistance))) - 2.5;
-
-
-							if(rangeDistance < this.range && this.weaponReady){
-								//game.log('Distance to creeper: ' + rangeDistance);
-								//game.log('Creeper is in range! DIE!');
-								this.fireWeaponAtCreeper(creeper);
+							game.ctx.beginPath();
+							game.ctx.arc(this.x + 15, this.y + 15, this.w / 2, 0, 2 * Math.PI,false);
+					    	game.ctx.fill();
+					    	game.ctx.lineWidth = 2;
+					    	game.ctx.strokeStyle = this.color;
+					    	game.ctx.stroke();
+						},
+						canvas: 'base_canvas',
+						type: 'towerItem',
+						color: towerColor,
+						range: towerPlacementItem.range,
+						damage: towerPlacementItem.damage,
+						timeOfLastDischarge: 0,
+						reloadTime: towerPlacementItem.reloadTime,
+						weaponReady: function(){
+							if(Date.now() >= this.timeOfLastDischarge + (this.reloadTime * 1000)){
+								return true;
 							}
-						}
-					},
-					fireWeaponAtCreeper: function(creeper){
+							return false;
+						},
+						isCreeperInRange: function(creeper){
+							//game.log('Checking if creeper is in range');
+							//console.log(creeper);
+							if(this.weaponReady()){
+								var creeperCenter = {x: creeper.x + (creeper.w / 2), y: creeper.y + (creeper.h / 2)};
+								var towerCenter = {x: this.x + 15, y: this.y + 15};
 
-						this.timeOfLastDischarge = Date.now();
-						// Instantiate firing weapon animation
-						// Instantiate creeper death animation
-						// Delete creeper from battlefield
-						// Increment score, cash
-						creeper.health -= this.damage;
-						if(creeper.health <= 0){
-							game.delCreeper(creeper);
-							game.cash += creeper.cashReward;
-							game.score += creeper.scoreReward;
-							//game.log("Cash increased to $" + game.cash + ', score is now ' + game.score);
-						}
-						
-					}
-				};
-				game.addObject(newTowerItem);
-				game.updateGrid();
-				game.graph = new Graph(game.grid);
-				game.start = game.graph.grid[0][8];
-				game.end = game.graph.grid[15][8];
+								// Get the distance from the center of the tower to the edge of the creeper (angular distance minus the creeper radius)
+								// Use the pythagorean theorem on the X,Y values to get the angular distance
 
-				// Using A* algorithm to determine path to finish
-				// http://bgrins.github.io/javascript-astar/
-				game.path = astar.search(game.graph, game.start, game.end);
+								var yDistance = Math.round(towerCenter.y - creeperCenter.y);
+								var xDistance = Math.round(towerCenter.x - creeperCenter.x);
+								var rangeDistance = Math.round(Math.sqrt((xDistance * xDistance) + (yDistance * yDistance))) - 2.5;
+
+
+								if(rangeDistance < this.range && this.weaponReady){
+									//game.log('Distance to creeper: ' + rangeDistance);
+									//game.log('Creeper is in range! DIE!');
+									this.fireWeaponAtCreeper(creeper);
+								}
+							}
+						},
+						fireWeaponAtCreeper: function(creeper){
+
+							this.timeOfLastDischarge = Date.now();
+							// Instantiate firing weapon animation
+							// Instantiate creeper death animation
+							// Delete creeper from battlefield
+							// Increment score, cash
+							creeper.health -= this.damage;
+							if(creeper.health <= 0){
+								game.delCreeper(creeper);
+								game.cash += creeper.cashReward;
+								game.score += creeper.scoreReward;
+								//game.log("Cash increased to $" + game.cash + ', score is now ' + game.score);
+							}
+							
+						}
+					};
+					game.addObject(newTowerItem);
+					game.updateGrid();
+					game.graph = new Graph(game.grid);
+					game.start = game.graph.grid[0][8];
+					game.end = game.graph.grid[15][8];
+
+					// Using A* algorithm to determine path to finish
+					// http://bgrins.github.io/javascript-astar/
+					game.path = astar.search(game.graph, game.start, game.end);
+				}
 			}
 		}
 	}
