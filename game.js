@@ -15,6 +15,16 @@ game.alert = function(msg){
 
 game.log = function(msg){
 	console.log('Log: ' + msg);
+
+	
+	$.ajax({
+		url: '/api',
+		type: 'POST',
+		data: {action: 'log', message: msg},
+		success: function(){
+
+		}
+	});
 }
 
 
@@ -160,6 +170,8 @@ game.init = function(){
 
 
 	game.initTowerPicker();
+
+	game.log("Starting game")
 
 	window.requestAnimationFrame(game.step);
 
@@ -561,6 +573,7 @@ game.mouseupHandler = function(event){
 								game.delCreeper(creeper);
 								game.cash += creeper.cashReward;
 								game.score += creeper.scoreReward;
+								game.log("Player killed a creeper")
 								//game.log("Cash increased to $" + game.cash + ', score is now ' + game.score);
 							}
 							
@@ -663,6 +676,7 @@ game.drawCreepers = function(){
 		if(game.creepers[i].x > 500){
 
 			game.delCreeper(game.creepers[i]);
+			game.log("Creeper got through!")
 			//game.log("One got away!");
 			game.lives--;
 			if(game.lives > 0){
@@ -670,7 +684,8 @@ game.drawCreepers = function(){
 
 			}
 			else{
-				//game.log("Game over! Score was: " + game.score);
+				game.log("Game over! Score was: " + game.score);
+
 				game.ctx.fillStyle = "rgba(255,0,0,1)";
 				game.ctx.font="30px Arial";
 				game.ctx.fillText("Game Over, Douche!",100,250);
@@ -721,6 +736,7 @@ game.releaseCreepers = function(){
 		game.addCreeper(newCreeper);
 	}
 	
+	game.log("Releasing new wave of creepers")
 
 	game.lastCreeperRelease = Date.now();
 }
